@@ -1,0 +1,127 @@
+﻿<UserControl x:Class="RentACar.Wpf.Views.CarPageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Filters -->
+            <RowDefinition Height="*"/>      <!-- List -->
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>   <!-- Filters + List -->
+            <ColumnDefinition Width="*"/>    <!-- Details -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Филтри (за сега просто TextBox/ComboBox-и) -->
+        <StackPanel Grid.Row="0" Grid.Column="0"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,10"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    >
+
+            <TextBlock Text="Category:" Margin="0,0,5,0"/>
+            <TextBox Width="100"
+                     Margin="0,0,10,0"
+                     Text="{Binding Search.Category, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Status:" Margin="0,0,5,0"/>
+            <TextBox Width="100"
+                     Margin="0,0,10,0"
+                     Text="{Binding Search.Status, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Min Rate:" Margin="0,0,5,0"/>
+            <TextBox Width="60"
+                     Margin="0,0,10,0"
+                     Text="{Binding Search.DailyRateMin, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Max Rate:" Margin="0,0,5,0"/>
+            <TextBox Width="60"
+                     Margin="0,0,10,0"
+                     Text="{Binding Search.DailyRateMax, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Button Content="Search"
+                    Padding="10,2"
+                    Click="SearchButton_Click"/>
+        </StackPanel>
+
+        <!-- Списък с коли -->
+        <DataGrid Grid.Row="1" Grid.Column="0"
+                  ItemsSource="{Binding List.Cars}"
+                  SelectedItem="{Binding List.SelectedCar, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Reg. No."
+                                    Binding="{Binding RegistrationNumber}"/>
+                <DataGridTextColumn Header="Make"
+                                    Binding="{Binding Make}"/>
+                <DataGridTextColumn Header="Model"
+                                    Binding="{Binding Model}"/>
+                <DataGridTextColumn Header="Category"
+                                    Binding="{Binding Category}"/>
+                <DataGridTextColumn Header="Daily rate"
+                                    Binding="{Binding DailyRate}"/>
+                <DataGridTextColumn Header="Status"
+                                    Binding="{Binding Status}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+            Margin="10,0,0,0">
+            <TextBlock Text="Car editor" FontWeight="Bold" Margin="0,0,0,10"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="New"
+                Width="70"
+                Margin="0,0,5,0"
+                Click="NewCarButton_Click"/>
+                <Button Content="Edit selected"
+                Width="100"
+                Margin="0,0,5,0"
+                Click="EditSelectedCarButton_Click"/>
+                <Button Content="Save"
+                Width="70"
+                Margin="0,0,5,0"
+                Click="SaveCarButton_Click"/>
+                <Button Content="Delete"
+                Width="70"
+                Click="DeleteCarButton_Click"/>
+            </StackPanel>
+
+            <!-- Полета за редакция -->
+            <TextBlock Text="Reg. No."/>
+            <TextBox Text="{Binding Edit.Current.RegistrationNumber, Mode=TwoWay}" />
+
+            <TextBlock Text="Make" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding Edit.Current.Make, Mode=TwoWay}" />
+
+            <TextBlock Text="Model" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding Edit.Current.Model, Mode=TwoWay}" />
+
+            <TextBlock Text="Category" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding Edit.Current.Category, Mode=TwoWay}" />
+
+            <TextBlock Text="Daily rate" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding Edit.Current.DailyRate, Mode=TwoWay}" />
+
+            <TextBlock Text="Status" Margin="0,5,0,0"/>
+            <TextBox Text="{Binding Edit.Current.Status, Mode=TwoWay}" />
+
+            <!-- Старите детайли – ако искаш да ги запазиш като readonly преглед -->
+            <Separator Margin="0,10,0,10"/>
+            <TextBlock Text="Selected car details" FontWeight="Bold" Margin="0,0,0,10"/>
+
+            <TextBlock Text="{Binding List.SelectedCar.RegistrationNumber}"/>
+            <TextBlock Text="{Binding List.SelectedCar.Make}"/>
+            <TextBlock Text="{Binding List.SelectedCar.Model}"/>
+            <TextBlock Text="{Binding List.SelectedCar.Category}"/>
+            <TextBlock Text="{Binding List.SelectedCar.DailyRate}"/>
+            <TextBlock Text="{Binding List.SelectedCar.Status}"/>
+        </StackPanel>
+
+    </Grid>
+</UserControl>
