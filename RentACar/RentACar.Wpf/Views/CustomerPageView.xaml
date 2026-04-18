@@ -1,0 +1,67 @@
+﻿<UserControl x:Class="RentACar.Wpf.Views.CustomerPageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Списък с клиенти -->
+        <DataGrid Grid.Column="0"
+                  ItemsSource="{Binding List.Customers}"
+                  SelectedItem="{Binding List.SelectedCustomer, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  Margin="0,0,10,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Full name"
+                                    Binding="{Binding FullName}" />
+                <DataGridTextColumn Header="Driving license"
+                                    Binding="{Binding DrivingLicenseNumber}" />
+                <DataGridTextColumn Header="Phone"
+                                    Binding="{Binding Phone}" />
+                <DataGridTextColumn Header="Email"
+                                    Binding="{Binding Email}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Редактор -->
+        <StackPanel Grid.Column="1">
+            <TextBlock Text="Customer editor"
+                       FontWeight="Bold"
+                       Margin="0,0,0,10" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="New"
+                        Width="60"
+                        Margin="0,0,5,0"
+                        Click="NewCustomerButton_Click" />
+                <Button Content="Edit selected"
+                        Width="100"
+                        Margin="0,0,5,0"
+                        Click="EditSelectedCustomerButton_Click" />
+                <Button Content="Save"
+                        Margin="0,0,5,0"
+                        Width="70"
+                        Click="SaveCustomerButton_Click" />
+                <Button Content="Delete"
+                        Width="70"
+                        Click="DeleteCustomerButton_Click" />
+            </StackPanel>
+
+            <TextBlock Text="Full name:" />
+            <TextBox Text="{Binding Edit.Current.FullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Driving license:" Margin="0,5,0,0" />
+            <TextBox Text="{Binding Edit.Current.DrivingLicenseNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Phone:" Margin="0,5,0,0" />
+            <TextBox Text="{Binding Edit.Current.Phone, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Email:" Margin="0,5,0,0" />
+            <TextBox Text="{Binding Edit.Current.Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
