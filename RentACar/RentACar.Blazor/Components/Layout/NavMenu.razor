@@ -1,0 +1,76 @@
+@rendermode InteractiveServer
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">🚗 RentACar</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-fill" aria-hidden="true"></span> 🏠 Home
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cars">
+                <span class="bi bi-car-front-fill" aria-hidden="true"></span> 🚗 Cars
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="customers">
+                <span class="bi bi-people-fill" aria-hidden="true"></span> 👥 Customers
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="rentals">
+                <span class="bi bi-journal-text" aria-hidden="true"></span> 📋 Rentals
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+<div class="db-section" @onclick:stopPropagation="true">
+    <div class="db-label">🗄️ Database</div>
+    <div class="db-toggle">
+        <button class="db-btn @(DbService.CurrentProvider == "Sqlite" ? "active" : "")"
+                @onclick='() => SwitchDb("Sqlite")'>
+            SQLite
+        </button>
+        <button class="db-btn @(DbService.CurrentProvider == "SqlServer" ? "active" : "")"
+                @onclick='() => SwitchDb("SqlServer")'>
+            SQL Server
+        </button>
+    </div>
+    <span class="db-indicator @(DbService.CurrentProvider == "Sqlite" ? "ind-sqlite" : "ind-sqlserver")">
+        ● @DbService.CurrentProvider
+    </span>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    protected override void OnInitialized()
+        => DbService.ProviderChanged += OnProviderChanged;
+
+    private void SwitchDb(string provider)
+    {
+        DbService.SwitchTo(provider);
+        StateHasChanged();
+    }
+
+    private void OnProviderChanged()
+        => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+        => DbService.ProviderChanged -= OnProviderChanged;
+}

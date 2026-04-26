@@ -24,7 +24,7 @@ namespace RentACar.Model.Entities
         // Examples: "Available", "Rented", "InService"
         public string Status { get; set; } = "Available";
 
-        public int LocationId { get; set; }
+        public int? LocationId { get; set; }
 
         public Location? Location { get; set; }
 

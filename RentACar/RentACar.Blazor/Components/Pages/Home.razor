@@ -1,0 +1,42 @@
+﻿@page "/"
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+
+<PageTitle>RentACar</PageTitle>
+
+<div style="padding: 2rem;">
+    <h2>🚗 RentACar Management</h2>
+    <p style="color: #64748b; margin-bottom: 1.5rem;">Choose a section to get started.</p>
+    <div style="display: flex; gap: 1rem;">
+        <a href="/cars" style="
+            display: inline-block;
+            background: #3b82f6;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;">
+            🚗 Cars
+        </a>
+        <a href="/customers" style="
+            display: inline-block;
+            background: #22c55e;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;">
+            👥 Customers
+        </a>
+        <a href="/rentals" style="
+            display: inline-block;
+            background: #f59e0b;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;">
+            📋 Rentals
+        </a>
+    </div>
+</div>

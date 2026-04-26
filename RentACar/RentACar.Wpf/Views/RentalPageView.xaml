@@ -92,33 +92,35 @@
                 Click="SaveButton_Click" />
             </StackPanel>
 
-            <!-- Car избор -->
-            <TextBlock Text="Car:" />
-            <ComboBox ItemsSource="{Binding Edit.Cars}"
-              SelectedItem="{Binding Edit.SelectedCar, Mode=TwoWay}"
-              DisplayMemberPath="RegistrationNumber"
-              Width="150"
-              Margin="0,0,0,5" />
-
-            <!-- Customer избор -->
-            <TextBlock Text="Customer:" Margin="0,5,0,0" />
-            <ComboBox ItemsSource="{Binding Edit.Customers}"
-              SelectedItem="{Binding Edit.SelectedCustomer, Mode=TwoWay}"
-              DisplayMemberPath="DrivingLicenseNumber"
-              Width="150"
-              Margin="0,0,0,5" />
-
-            <TextBlock Text="Pickup:" Margin="0,5,0,0" />
+            <TextBlock Text="Pickup:" />
             <DatePicker SelectedDate="{Binding Edit.Current.PickupDateTime, Mode=TwoWay}" />
 
             <TextBlock Text="Dropoff:" Margin="0,5,0,0" />
             <DatePicker SelectedDate="{Binding Edit.Current.DropoffDateTime, Mode=TwoWay}" />
 
+            <TextBlock Text="Total price:" Margin="0,5,0,0" />
+            <TextBox Text="{Binding Edit.Current.TotalPrice, Mode=OneWay}" IsReadOnly="True" />
+
             <TextBlock Text="Status:" Margin="0,5,0,0" />
             <TextBox Text="{Binding Edit.Current.Status, Mode=TwoWay}" />
 
-            <TextBlock Text="Total price:" Margin="0,5,0,0" />
-            <TextBox Text="{Binding Edit.Current.TotalPrice, Mode=TwoWay}" />
+            <!-- Car избор -->
+            <TextBlock Text="Car:" />
+            <ComboBox ItemsSource="{Binding Edit.Cars}"
+               SelectedItem="{Binding Edit.SelectedCar, Mode=TwoWay}"
+               DisplayMemberPath="RegistrationNumber"
+               Width="150"
+               Margin="0,0,0,5" />
+
+            <!-- Customer избор -->
+            <TextBlock Text="Customer:" Margin="0,5,0,0" />
+            <ComboBox ItemsSource="{Binding Edit.Customers}"
+               SelectedItem="{Binding Edit.SelectedCustomer, Mode=TwoWay}"
+               DisplayMemberPath="DrivingLicenseNumber"
+               Width="150"
+               Margin="0,0,0,5" />
+
+
         </StackPanel>
     </Grid>
 </UserControl> 

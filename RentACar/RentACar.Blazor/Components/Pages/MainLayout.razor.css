@@ -1,0 +1,61 @@
+/* ── DB switcher in top bar ─────────────────────────────────── */
+.top-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 3.5rem;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.db-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.db-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.db-toggle {
+    display: flex;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.db-btn {
+    padding: 0.3rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 150ms, color 150ms;
+}
+
+.db-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.db-btn.active {
+    background: #1e293b;
+    color: #fff;
+    border-radius: 6px;
+}
+
+.db-indicator {
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ind-sqlite    { color: #0891b2; }
+.ind-sqlserver { color: #7c3aed; }

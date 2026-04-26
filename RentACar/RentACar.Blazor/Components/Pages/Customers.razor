@@ -1,0 +1,272 @@
+﻿@page "/customers"
+@rendermode InteractiveServer
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+@using RentACar.Model.Entities
+@using RentACar.Model.Interfaces
+
+<PageTitle>Customers</PageTitle>
+
+<div class="page-header">
+    <h2>👥 Customers</h2>
+    <button class="btn btn-success" @onclick="StartNew">＋ New Customer</button>
+</div>
+
+<!-- ── SEARCH PANEL ── -->
+<div class="search-panel">
+    <div class="search-fields">
+        <div class="field-group">
+            <label>Name</label>
+            <input @bind="NameFilter" placeholder="e.g. Ivan Petrov" />
+        </div>
+        <div class="field-group">
+            <label>Email</label>
+            <input @bind="EmailFilter" placeholder="e.g. ivan@mail.com" />
+        </div>
+        <div class="field-group">
+            <label>Phone</label>
+            <input @bind="PhoneFilter" placeholder="e.g. +359..." />
+        </div>
+    </div>
+    <div class="search-actions">
+        <button class="btn btn-primary" @onclick="ApplyFilter">🔍 Search</button>
+        <button class="btn btn-secondary" @onclick="ClearFilter">✕ Clear</button>
+    </div>
+</div>
+
+<!-- ── NEW / EDIT INLINE FORM ── -->
+@if (EditCustomer != null)
+{
+    <div class="edit-card">
+        <div class="edit-card-header">
+            <h3>@(EditCustomer.Id == 0 ? "➕ New Customer" : "✏️ Edit Customer")</h3>
+            <button class="close-btn" @onclick="CloseEdit">✕</button>
+        </div>
+        <div class="edit-fields">
+            <div class="field-group">
+                <label>Full Name</label>
+                <input @bind="EditCustomer.FullName" placeholder="e.g. Ivan Petrov" />
+            </div>
+            <div class="field-group">
+                <label>Email</label>
+                <input type="email" @bind="EditCustomer.Email" placeholder="e.g. ivan@mail.com" />
+            </div>
+            <div class="field-group">
+                <label>Phone</label>
+                <input @bind="EditCustomer.Phone" placeholder="e.g. +359888123456" />
+            </div>
+            <div class="field-group">
+                <label>Driving License No.</label>
+                <input @bind="EditCustomer.DrivingLicenseNumber" placeholder="e.g. BG123456" />
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="error-banner">⚠️ @ErrorMessage</div>
+        }
+
+        <div class="edit-actions">
+            <button class="btn btn-primary" @onclick="SaveAsync">💾 Save</button>
+            <button class="btn btn-secondary" @onclick="CloseEdit">Cancel</button>
+        </div>
+    </div>
+}
+
+<!-- ── CUSTOMER TABLE ── -->
+@if (IsLoading)
+{
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading customers…</span>
+    </div>
+}
+else if (Filtered.Count == 0)
+{
+    <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <p>No customers found. Try adjusting the filters.</p>
+    </div>
+}
+else
+{
+    <div class="table-wrapper">
+        <div class="table-meta">@Filtered.Count customer(s) found</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Driving License</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Filtered)
+                {
+                    <tr class="@(SelectedCustomer?.Id == c.Id ? "row-selected" : "")"
+                        @onclick="() => SelectCustomer(c)">
+                        <td class="name-col">@c.FullName</td>
+                        <td>@c.Email</td>
+                        <td>@c.Phone</td>
+                        <td class="license-col">@c.DrivingLicenseNumber</td>
+                        <td class="col-actions">
+                            <button class="btn-icon" title="Edit"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => StartEdit(c)">
+                                ✏️
+                            </button>
+                            <button class="btn-icon danger" title="Delete"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => ConfirmDelete(c)">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+@if (CustomerToDelete != null)
+{
+    <div class="modal-backdrop" @onclick="() => CustomerToDelete = null">
+        <div class="modal-box" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>🗑️ Confirm Delete</h3>
+                <button class="close-btn" @onclick="() => CustomerToDelete = null">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete:</p>
+                <p class="delete-target">@CustomerToDelete.FullName</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" @onclick="DeleteAsync">Yes, Delete</button>
+                <button class="btn btn-secondary" @onclick="() => CustomerToDelete = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Customer> AllCustomers { get; set; } = new();
+    private List<Customer> Filtered { get; set; } = new();
+    private Customer? SelectedCustomer { get; set; }
+    private Customer? EditCustomer { get; set; }
+    private Customer? CustomerToDelete { get; set; }
+    private string? ErrorMessage { get; set; }
+    private bool IsLoading { get; set; }
+
+    private string? NameFilter { get; set; }
+    private string? EmailFilter { get; set; }
+    private string? PhoneFilter { get; set; }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        AllCustomers = (await DbService.UnitOfWork.Customers.GetAllAsync()).ToList();
+        ApplyFilter();
+        IsLoading = false;
+    }
+
+    private void ApplyFilter()
+    {
+        Filtered = AllCustomers.Where(c =>
+            (string.IsNullOrEmpty(NameFilter)  || c.FullName.Contains(NameFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(EmailFilter) || c.Email.Contains(EmailFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(PhoneFilter) || c.Phone.Contains(PhoneFilter, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+    }
+
+    private void ClearFilter()
+    {
+        NameFilter = EmailFilter = PhoneFilter = null;
+        ApplyFilter();
+    }
+
+    private void SelectCustomer(Customer c)
+        => SelectedCustomer = SelectedCustomer?.Id == c.Id ? null : c;
+
+    private void StartNew()
+    {
+        ErrorMessage = null;
+        EditCustomer = new Customer();
+    }
+
+    private void StartEdit(Customer c)
+    {
+        ErrorMessage = null;
+        EditCustomer = new Customer
+        {
+            Id                   = c.Id,
+            FullName             = c.FullName,
+            Email                = c.Email,
+            Phone                = c.Phone,
+            DrivingLicenseNumber = c.DrivingLicenseNumber
+        };
+    }
+
+    private void CloseEdit() { EditCustomer = null; ErrorMessage = null; }
+
+    private async Task SaveAsync()
+    {
+        if (EditCustomer == null) return;
+        ErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(EditCustomer.FullName))
+        {
+            ErrorMessage = "Full name is required.";
+            return;
+        }
+
+        try
+        {
+            if (EditCustomer.Id == 0)
+            {
+                await DbService.UnitOfWork.Customers.AddAsync(EditCustomer);
+            }
+            else
+            {
+                var tracked = await DbService.UnitOfWork.Customers.GetByIdAsync(EditCustomer.Id);
+                if (tracked != null)
+                {
+                    tracked.FullName             = EditCustomer.FullName;
+                    tracked.Email                = EditCustomer.Email;
+                    tracked.Phone                = EditCustomer.Phone;
+                    tracked.DrivingLicenseNumber = EditCustomer.DrivingLicenseNumber;
+                }
+            }
+
+            await DbService.UnitOfWork.SaveChangesAsync();
+            EditCustomer = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) { ErrorMessage = $"Error saving: {ex.Message}"; }
+    }
+
+    private void ConfirmDelete(Customer c) => CustomerToDelete = c;
+
+    private async Task DeleteAsync()
+    {
+        if (CustomerToDelete == null) return;
+        try
+        {
+            await DbService.UnitOfWork.Customers.DeleteAsync(CustomerToDelete);
+            await DbService.UnitOfWork.SaveChangesAsync();
+            if (SelectedCustomer?.Id == CustomerToDelete.Id) SelectedCustomer = null;
+            CustomerToDelete = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting: {ex.Message}";
+            CustomerToDelete = null;
+        }
+    }
+}

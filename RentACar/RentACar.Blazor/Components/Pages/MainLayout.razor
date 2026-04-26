@@ -1,0 +1,56 @@
+@inherits LayoutComponentBase
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+@implements IDisposable
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+    <main>
+        <div class="top-row px-4">
+            <div class="db-switcher">
+                <span class="db-label">🗄️ Database:</span>
+                <div class="db-toggle">
+                    <button class="db-btn @(DbService.CurrentProvider == "Sqlite" ? "active" : "")"
+                            @onclick='() => SwitchDb("Sqlite")'>
+                        SQLite
+                    </button>
+                    <button class="db-btn @(DbService.CurrentProvider == "SqlServer" ? "active" : "")"
+                            @onclick='() => SwitchDb("SqlServer")'>
+                        SQL Server
+                    </button>
+                </div>
+                <span class="db-indicator @(DbService.CurrentProvider == "Sqlite" ? "ind-sqlite" : "ind-sqlserver")">
+                    ● @DbService.CurrentProvider
+                </span>
+            </div>
+        </div>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    protected override void OnInitialized()
+        => DbService.ProviderChanged += OnProviderChanged;
+
+    private void SwitchDb(string provider)
+    {
+        DbService.SwitchTo(provider);
+        StateHasChanged();
+    }
+
+    private void OnProviderChanged()
+        => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+        => DbService.ProviderChanged -= OnProviderChanged;
+}
