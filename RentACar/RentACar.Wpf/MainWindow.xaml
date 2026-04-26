@@ -39,11 +39,23 @@
                     Margin="0,0,5,0"
                     Command="{Binding ShowRentalsCommand}" />
             <Button Content="Customers"
+                    Margin="0,0,250,0"
                     Command="{Binding ShowCustomersCommand}" />
+
+            <TextBlock Text="Database:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,5,0"/>
+            <ComboBox x:Name="DbProviderCombo"
+                  Width="120"
+                  SelectionChanged="DbProviderCombo_SelectionChanged">
+                <ComboBoxItem Content="SQLite" Tag="Sqlite" IsSelected="True"/>
+                <ComboBoxItem Content="SQL Server" Tag="SqlServer"/>
+            </ComboBox>
         </StackPanel>
 
         <!-- Тук се показва активната страница -->
         <ContentControl Margin="5"
                         Content="{Binding CurrentPageViewModel}" />
     </DockPanel>
+    
 </Window>

@@ -52,6 +52,15 @@ namespace RentACar.Model.Data
                 .WithMany(l => l.Dropoffs)
                 .HasForeignKey(r => r.DropoffLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Location>().HasData(
+                new Location { Id = 1, Name = "Sofia - Airport (SOF)" },
+                new Location { Id = 2, Name = "Sofia - Center" },
+                new Location { Id = 3, Name = "Plovdiv" },
+                new Location { Id = 4, Name = "Varna" }
+            );
         }
     }
 }

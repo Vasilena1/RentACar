@@ -1,8 +1,9 @@
-﻿using System.ComponentModel;
+﻿using RentACar.Model.Entities;
+using RentACar.Model.Interfaces;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using RentACar.Model.Entities;
-using RentACar.Model.Interfaces;
 
 namespace RentACar.ViewModel.ViewModels
 {
@@ -10,9 +11,35 @@ namespace RentACar.ViewModel.ViewModels
     {
         private readonly IUnitOfWork _unitOfWork;
 
+        public ObservableCollection<Location> Locations { get; } = new();
+
         public CarEditViewModel(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
+        }
+
+        private Location? _selectedLocation;
+        public Location? SelectedLocation
+        {
+            get => _selectedLocation;
+            set
+            {
+                if (_selectedLocation != value)
+                {
+                    _selectedLocation = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public async Task LoadLocationsAsync()
+        {
+            System.Diagnostics.Debug.WriteLine("Locations loaded: " + Locations.Count);
+            Locations.Clear();
+            var all = await _unitOfWork.Locations.GetAllAsync();
+
+            foreach (var loc in all)
+                Locations.Add(loc);
         }
 
         private Car? _current;
@@ -34,15 +61,14 @@ namespace RentACar.ViewModel.ViewModels
 
         public void StartNew()
         {
-            Current = new Car
-            {
-                Status = "Available"
-            };
+            Current = new Car { Status = "Available" };
+            SelectedLocation = Locations.FirstOrDefault(); // по избор
         }
 
         public void StartEdit(Car car)
         {
             Current = car;
+            SelectedLocation = Locations.FirstOrDefault(l => l.Id == car.LocationId);
         }
 
         public async Task SaveAsync()
@@ -50,16 +76,11 @@ namespace RentACar.ViewModel.ViewModels
             if (Current == null)
                 return;
 
-            // Временно: докато нямаме UI за Location, задаваме някакво валидно Id
-            if (Current.LocationId == 0)
-            {
-                Current.LocationId = 1; // предполага се, че имаш Location с Id=1
-            }
+            if (SelectedLocation != null)
+                Current.LocationId = SelectedLocation.Id;
 
             if (Current.Id == 0)
-            {
                 await _unitOfWork.Cars.AddAsync(Current);
-            }
 
             await _unitOfWork.SaveChangesAsync();
         }

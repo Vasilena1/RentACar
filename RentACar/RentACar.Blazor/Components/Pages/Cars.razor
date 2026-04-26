@@ -1,0 +1,345 @@
+﻿@page "/cars"
+@rendermode InteractiveServer
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+@using RentACar.Model.Entities
+@using RentACar.Model.Interfaces
+
+<PageTitle>Cars</PageTitle>
+
+<div class="page-header">
+    <h2>Cars</h2>
+    <button class="btn btn-success" @onclick="StartNew">＋ New Car</button>
+</div>
+
+<!-- ── SEARCH PANEL ── -->
+<div class="search-panel">
+    <div class="search-fields">
+        <div class="field-group">
+            <label>Make</label>
+            <input @bind="Search.MakeContains" placeholder="e.g. Toyota" />
+        </div>
+        <div class="field-group">
+            <label>Model</label>
+            <input @bind="Search.ModelContains" placeholder="e.g. Corolla" />
+        </div>
+        <div class="field-group">
+            <label>Category</label>
+            <input @bind="Search.Category" placeholder="e.g. Economy" />
+        </div>
+        <div class="field-group">
+            <label>Status</label>
+            <select @bind="Search.Status">
+                <option value="">All</option>
+                <option value="Available">Available</option>
+                <option value="Rented">Rented</option>
+                <option value="Maintenance">Maintenance</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Min Rate (€/day)</label>
+            <input type="number" @bind="Search.DailyRateMin" min="0" />
+        </div>
+        <div class="field-group">
+            <label>Max Rate (€/day)</label>
+            <input type="number" @bind="Search.DailyRateMax" min="0" />
+        </div>
+        <div class="field-group">
+            <label>Location</label>
+            <select value="@Search.LocationIdStr"
+                    @onchange="e => Search.LocationIdStr = e.Value?.ToString()">
+                <option value="">Any</option>
+                @foreach (var loc in Locations)
+                {
+                    <option value="@loc.Id">@loc.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="search-actions">
+        <button class="btn btn-primary" @onclick="DoSearch">🔍 Search</button>
+        <button class="btn btn-secondary" @onclick="ClearSearch">✕ Clear</button>
+    </div>
+</div>
+
+<!-- ── NEW / EDIT INLINE FORM ── -->
+@if (EditCar != null)
+{
+    <div class="edit-card">
+        <div class="edit-card-header">
+            <h3>@(EditCar.Id == 0 ? "➕ New Car" : "✏️ Edit Car")</h3>
+            <button class="close-btn" @onclick="CloseEdit">✕</button>
+        </div>
+        <div class="edit-fields">
+            <div class="field-group">
+                <label>Registration No.</label>
+                <input @bind="EditCar.RegistrationNumber" placeholder="e.g. CA8642PB" />
+            </div>
+            <div class="field-group">
+                <label>Make</label>
+                <input @bind="EditCar.Make" placeholder="e.g. Dacia" />
+            </div>
+            <div class="field-group">
+                <label>Model</label>
+                <input @bind="EditCar.Model" placeholder="e.g. Sandero" />
+            </div>
+            <div class="field-group">
+                <label>Category</label>
+                <input @bind="EditCar.Category" placeholder="e.g. Economy" />
+            </div>
+            <div class="field-group">
+                <label>Status</label>
+                <select @bind="EditCar.Status">
+                    <option value="Available">Available</option>
+                    <option value="Rented">Rented</option>
+                    <option value="Maintenance">Maintenance</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Daily Rate (€)</label>
+                <input type="number" step="0.01" min="0" @bind="EditCar.DailyRate" />
+            </div>
+            <div class="field-group">
+                <label>Location</label>
+                <select @bind="EditCar.LocationId">
+                    @foreach (var loc in Locations)
+                    {
+                        <option value="@loc.Id">@loc.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="error-banner">⚠️ @ErrorMessage</div>
+        }
+
+        <div class="edit-actions">
+            <button class="btn btn-primary" @onclick="SaveAsync">💾 Save</button>
+            <button class="btn btn-secondary" @onclick="CloseEdit">Cancel</button>
+        </div>
+    </div>
+}
+
+<!-- ── CAR TABLE ── -->
+@if (IsLoading)
+{
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading cars…</span>
+    </div>
+}
+else if (CarList.Count == 0)
+{
+    <div class="empty-state">
+        <div class="empty-icon">🚗</div>
+        <p>No cars found. Try adjusting the filters.</p>
+    </div>
+}
+else
+{
+    <div class="table-wrapper">
+        <div class="table-meta">@CarList.Count car(s) found</div>
+        <table class="car-table">
+            <thead>
+                <tr>
+                    <th>Reg. No.</th>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>€/day</th>
+                    <th>Location</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var car in CarList)
+                {
+                    <tr class="@(SelectedCar?.Id == car.Id ? "row-selected" : "")"
+                        @onclick="() => SelectCar(car)">
+                        <td class="reg-no">@car.RegistrationNumber</td>
+                        <td>@car.Make</td>
+                        <td>@car.Model</td>
+                        <td>@car.Category</td>
+                        <td>
+                            <span class="badge @StatusClass(car.Status)">@car.Status</span>
+                        </td>
+                        <td class="rate">@car.DailyRate.ToString("0.00")</td>
+                        <td>@car.Location?.Name</td>
+                        <td class="col-actions">
+                            <button class="btn-icon" title="Edit"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => StartEdit(car)">
+                                ✏️
+                            </button>
+                            <button class="btn-icon danger" title="Delete"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => ConfirmDelete(car)">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+@if (CarToDelete != null)
+{
+    <div class="modal-backdrop" @onclick="() => CarToDelete = null">
+        <div class="modal-box" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>🗑️ Confirm Delete</h3>
+                <button class="close-btn" @onclick="() => CarToDelete = null">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete:</p>
+                <p class="delete-target">@CarToDelete.RegistrationNumber — @CarToDelete.Make @CarToDelete.Model</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" @onclick="DeleteAsync">Yes, Delete</button>
+                <button class="btn btn-secondary" @onclick="() => CarToDelete = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Car> CarList { get; set; } = new();
+    private List<Location> Locations { get; set; } = new();
+    private Car? SelectedCar { get; set; }
+    private Car? EditCar { get; set; }
+    private Car? CarToDelete { get; set; }
+    private string? ErrorMessage { get; set; }
+    private bool IsLoading { get; set; }
+
+    private CarSearchState Search { get; set; } = new() { Status = "" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Locations = (await DbService.UnitOfWork.Locations.GetAllAsync()).ToList();
+        await DoSearch();
+    }
+
+    private async Task DoSearch()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        CarList = (await DbService.UnitOfWork.Cars.SearchAsync(
+            Search.Category, Search.Status,
+            Search.DailyRateMin, Search.DailyRateMax,
+            Search.MakeContains, Search.ModelContains,
+            Search.LocationId)).ToList();
+        IsLoading = false;
+    }
+
+    private async Task ClearSearch()
+    {
+        Search = new CarSearchState { Status = "" };
+        await DoSearch();
+    }
+
+    private void SelectCar(Car car)
+        => SelectedCar = SelectedCar?.Id == car.Id ? null : car;
+
+    private void StartNew()
+    {
+        ErrorMessage = null;
+        EditCar = new Car { Status = "Available", LocationId = Locations.FirstOrDefault()?.Id };
+    }
+
+    private void StartEdit(Car car)
+    {
+        ErrorMessage = null;
+        EditCar = new Car
+        {
+            Id = car.Id,
+            RegistrationNumber = car.RegistrationNumber,
+            Make = car.Make,
+            Model = car.Model,
+            Category = car.Category,
+            Status = car.Status,
+            DailyRate = car.DailyRate,
+            LocationId = car.LocationId
+        };
+    }
+
+    private void CloseEdit() { EditCar = null; ErrorMessage = null; }
+
+    private async Task SaveAsync()
+    {
+        if (EditCar == null) return;
+        ErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(EditCar.RegistrationNumber) ||
+            string.IsNullOrWhiteSpace(EditCar.Make) ||
+            string.IsNullOrWhiteSpace(EditCar.Model))
+        {
+            ErrorMessage = "Registration number, Make and Model are required.";
+            return;
+        }
+
+        try
+        {
+            if (EditCar.Id == 0)
+            {
+                await DbService.UnitOfWork.Cars.AddAsync(EditCar);
+            }
+            else
+            {
+                var tracked = await DbService.UnitOfWork.Cars.GetByIdAsync(EditCar.Id);
+                if (tracked != null)
+                {
+                    tracked.RegistrationNumber = EditCar.RegistrationNumber;
+                    tracked.Make = EditCar.Make; tracked.Model = EditCar.Model;
+                    tracked.Category = EditCar.Category; tracked.Status = EditCar.Status;
+                    tracked.DailyRate = EditCar.DailyRate; tracked.LocationId = EditCar.LocationId;
+                }
+            }
+            await DbService.UnitOfWork.SaveChangesAsync();
+            EditCar = null;
+            await DoSearch();
+        }
+        catch (Exception ex) { ErrorMessage = $"Error saving: {ex.Message}"; }
+    }
+
+    private void ConfirmDelete(Car car) => CarToDelete = car;
+
+    private async Task DeleteAsync()
+    {
+        if (CarToDelete == null) return;
+        try
+        {
+            await DbService.UnitOfWork.Cars.DeleteAsync(CarToDelete);
+            await DbService.UnitOfWork.SaveChangesAsync();
+            if (SelectedCar?.Id == CarToDelete.Id) SelectedCar = null;
+            CarToDelete = null;
+            await DoSearch();
+        }
+        catch (Exception ex) { ErrorMessage = $"Error deleting: {ex.Message}"; CarToDelete = null; }
+    }
+
+    private static string StatusClass(string? status) => status switch
+    {
+        "Available" => "badge-available",
+        "Rented" => "badge-rented",
+        "Maintenance" => "badge-maintenance",
+        _ => "badge-default"
+    };
+
+    private class CarSearchState
+    {
+        public string? Category { get; set; }
+        public string? Status { get; set; }
+        public decimal? DailyRateMin { get; set; }
+        public decimal? DailyRateMax { get; set; }
+        public string? MakeContains { get; set; }
+        public string? ModelContains { get; set; }
+        public string? LocationIdStr { get; set; }
+        public int? LocationId => int.TryParse(LocationIdStr, out var id) ? id : null;
+    }
+}

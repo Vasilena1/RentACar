@@ -13,7 +13,8 @@ namespace RentACar.ViewModel.ViewModels
 
             List = new CarListViewModel();
             Search = new CarSearchViewModel(_unitOfWork, List);
-            Edit = new CarEditViewModel(_unitOfWork);
+            Edit = new CarEditViewModel(unitOfWork);
+            _ = Edit.LoadLocationsAsync();
         }
 
         public CarSearchViewModel Search { get; }

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RentACar.ViewModel", "RentA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RentACar.Wpf", "RentACar.Wpf\RentACar.Wpf.csproj", "{EDBB5206-D608-46B3-A4FA-C5640AA4EE3E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RentACar.Blazor", "RentACar.Blazor\RentACar.Blazor.csproj", "{49B2E0A0-693D-47B3-B184-94B290F1A8D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{EDBB5206-D608-46B3-A4FA-C5640AA4EE3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDBB5206-D608-46B3-A4FA-C5640AA4EE3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDBB5206-D608-46B3-A4FA-C5640AA4EE3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49B2E0A0-693D-47B3-B184-94B290F1A8D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49B2E0A0-693D-47B3-B184-94B290F1A8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49B2E0A0-693D-47B3-B184-94B290F1A8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49B2E0A0-693D-47B3-B184-94B290F1A8D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

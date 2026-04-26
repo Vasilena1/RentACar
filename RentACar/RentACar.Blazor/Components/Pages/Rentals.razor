@@ -1,0 +1,468 @@
+@page "/rentals"
+@rendermode InteractiveServer
+@inject DatabaseProviderService DbService
+@using RentACar.Blazor.Services
+@using RentACar.Model.Entities
+@using RentACar.Model.Interfaces
+
+<PageTitle>Rentals</PageTitle>
+
+<div class="page-header">
+    <h2>📋 Rentals</h2>
+    <button class="btn btn-success" @onclick="StartNew">＋ New Rental</button>
+</div>
+
+<!-- ── SEARCH PANEL ── -->
+<div class="search-panel">
+    <div class="search-fields">
+        <div class="field-group">
+            <label>Customer Name</label>
+            <input @bind="Search.CustomerNameContains" placeholder="e.g. Ivan Petrov" />
+        </div>
+        <div class="field-group">
+            <label>Status</label>
+            <select @bind="Search.Status">
+                <option value="">All</option>
+                <option value="Active">Active</option>
+                <option value="Planned">Planned</option>
+                <option value="Finished">Finished</option>
+                <option value="Late">Late</option>
+                <option value="Canceled">Canceled</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Pickup From</label>
+            <input type="date" @bind="Search.PickupFrom" />
+        </div>
+        <div class="field-group">
+            <label>Pickup To</label>
+            <input type="date" @bind="Search.PickupTo" />
+        </div>
+        <div class="field-group">
+            <label>Dropoff From</label>
+            <input type="date" @bind="Search.DropoffFrom" />
+        </div>
+        <div class="field-group">
+            <label>Dropoff To</label>
+            <input type="date" @bind="Search.DropoffTo" />
+        </div>
+        <div class="field-group">
+            <label>Pickup Location</label>
+            <select value="@Search.PickupLocationIdStr"
+                    @onchange="e => Search.PickupLocationIdStr = e.Value?.ToString()">
+                <option value="">Any</option>
+                @foreach (var loc in Locations)
+                {
+                    <option value="@loc.Id">@loc.Name</option>
+                }
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Dropoff Location</label>
+            <select value="@Search.DropoffLocationIdStr"
+                    @onchange="e => Search.DropoffLocationIdStr = e.Value?.ToString()">
+                <option value="">Any</option>
+                @foreach (var loc in Locations)
+                {
+                    <option value="@loc.Id">@loc.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="search-actions">
+        <button class="btn btn-primary" @onclick="DoSearch">🔍 Search</button>
+        <button class="btn btn-secondary" @onclick="ClearSearch">✕ Clear</button>
+    </div>
+</div>
+
+<!-- ── NEW / EDIT INLINE FORM ── -->
+@if (EditRental != null)
+{
+    <div class="edit-card">
+        <div class="edit-card-header">
+            <h3>@(EditRental.Id == 0 ? "➕ New Rental" : "✏️ Edit Rental")</h3>
+            <button class="close-btn" @onclick="CloseEdit">✕</button>
+        </div>
+        <div class="edit-fields">
+            <div class="field-group">
+                <label>Car</label>
+                <select value="@EditRental.CarId"
+                        @onchange="OnCarChanged">
+                    <option value="0">— select car —</option>
+                    @foreach (var car in AllCars)
+                    {
+                        <option value="@car.Id">@car.Make @car.Model (@car.RegistrationNumber) — €@car.DailyRate/day</option>
+                    }
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Customer</label>
+                <select @bind="EditRental.CustomerId">
+                    <option value="0">— select customer —</option>
+                    @foreach (var c in AllCustomers)
+                    {
+                        <option value="@c.Id">@c.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Pickup Location</label>
+                <select @bind="EditRental.PickupLocationId">
+                    @foreach (var loc in Locations)
+                    {
+                        <option value="@loc.Id">@loc.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Dropoff Location</label>
+                <select @bind="EditRental.DropoffLocationId">
+                    @foreach (var loc in Locations)
+                    {
+                        <option value="@loc.Id">@loc.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Pickup Date &amp; Time</label>
+                <input type="datetime-local"
+                       value="@EditRental.PickupDateTime.ToString("yyyy-MM-ddTHH:mm")"
+                       @onchange="OnPickupChanged" />
+            </div>
+            <div class="field-group">
+                <label>Dropoff Date &amp; Time</label>
+                <input type="datetime-local"
+                       value="@EditRental.DropoffDateTime.ToString("yyyy-MM-ddTHH:mm")"
+                       @onchange="OnDropoffChanged" />
+            </div>
+            <div class="field-group">
+                <label>Status</label>
+                <select @bind="EditRental.Status">
+                    <option value="Planned">Planned</option>
+                    <option value="Active">Active</option>
+                    <option value="Finished">Finished</option>
+                    <option value="Late">Late</option>
+                    <option value="Canceled">Canceled</option>
+                </select>
+            </div>
+            <div class="field-group total-group">
+                <label>Total Price</label>
+                <div class="total-display">€ @EditRental.TotalPrice.ToString("0.00")</div>
+                <span class="total-hint">@GetDays() day(s) × €@GetCarRate()/day</span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="error-banner">⚠️ @ErrorMessage</div>
+        }
+
+        <div class="edit-actions">
+            <button class="btn btn-primary" @onclick="SaveAsync">💾 Save</button>
+            <button class="btn btn-secondary" @onclick="CloseEdit">Cancel</button>
+        </div>
+    </div>
+}
+
+<!-- ── RENTALS TABLE ── -->
+@if (IsLoading)
+{
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading rentals…</span>
+    </div>
+}
+else if (RentalList.Count == 0)
+{
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>No rentals found. Try adjusting the filters.</p>
+    </div>
+}
+else
+{
+    <div class="table-wrapper">
+        <div class="table-meta">@RentalList.Count rental(s) found</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Customer</th>
+                    <th>Car</th>
+                    <th>Pickup</th>
+                    <th>Dropoff</th>
+                    <th>Pickup Loc.</th>
+                    <th>Dropoff Loc.</th>
+                    <th>Status</th>
+                    <th class="col-price">Total (€)</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in RentalList)
+                {
+                    <tr class="@(SelectedRental?.Id == r.Id ? "row-selected" : "")"
+                        @onclick="() => SelectRental(r)">
+                        <td class="id-col">@r.Id</td>
+                        <td class="name-col">@r.Customer?.FullName</td>
+                        <td>@r.Car?.Make @r.Car?.Model <span class="reg-tag">@r.Car?.RegistrationNumber</span></td>
+                        <td class="date-col">@r.PickupDateTime.ToString("dd MMM yyyy HH:mm")</td>
+                        <td class="date-col">@r.DropoffDateTime.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@r.PickupLocation?.Name</td>
+                        <td>@r.DropoffLocation?.Name</td>
+                        <td><span class="badge @StatusClass(r.Status)">@r.Status</span></td>
+                        <td class="col-price price-val">@r.TotalPrice.ToString("0.00")</td>
+                        <td class="col-actions">
+                            <button class="btn-icon" title="Edit"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => StartEdit(r)">✏️</button>
+                            <button class="btn-icon danger" title="Delete"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => ConfirmDelete(r)">🗑️</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+@if (RentalToDelete != null)
+{
+    <div class="modal-backdrop" @onclick="() => RentalToDelete = null">
+        <div class="modal-box" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>🗑️ Confirm Delete</h3>
+                <button class="close-btn" @onclick="() => RentalToDelete = null">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete rental <strong>#@RentalToDelete.Id</strong>?</p>
+                <p class="delete-target">@RentalToDelete.Customer?.FullName — @RentalToDelete.Car?.Make @RentalToDelete.Car?.Model</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" @onclick="DeleteAsync">Yes, Delete</button>
+                <button class="btn btn-secondary" @onclick="() => RentalToDelete = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Rental>   RentalList     { get; set; } = new();
+    private List<Car>      AllCars        { get; set; } = new();
+    private List<Customer> AllCustomers   { get; set; } = new();
+    private List<Location> Locations      { get; set; } = new();
+    private Rental?        SelectedRental { get; set; }
+    private Rental?        EditRental     { get; set; }
+    private Rental?        RentalToDelete { get; set; }
+    private string?        ErrorMessage   { get; set; }
+    private bool           IsLoading      { get; set; }
+
+    private RentalSearchState Search { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Locations    = (await DbService.UnitOfWork.Locations.GetAllAsync()).ToList();
+        AllCars      = (await DbService.UnitOfWork.Cars.GetAllAsync()).ToList();
+        AllCustomers = (await DbService.UnitOfWork.Customers.GetAllAsync()).ToList();
+        await DoSearch();
+    }
+
+    private async Task DoSearch()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        RentalList = (await DbService.UnitOfWork.Rentals.SearchAsync(
+            Search.Status,
+            Search.PickupFrom, Search.PickupTo,
+            Search.DropoffFrom, Search.DropoffTo,
+            Search.CustomerNameContains,
+            Search.PickupLocationId,
+            Search.DropoffLocationId)).ToList();
+        IsLoading = false;
+    }
+
+    private async Task ClearSearch()
+    {
+        Search = new RentalSearchState();
+        await DoSearch();
+    }
+
+    private void SelectRental(Rental r)
+        => SelectedRental = SelectedRental?.Id == r.Id ? null : r;
+
+    private void StartNew()
+    {
+        ErrorMessage = null;
+        EditRental = new Rental
+        {
+            PickupDateTime  = DateTime.Now,
+            DropoffDateTime = DateTime.Now.AddDays(1),
+            Status          = "Planned",
+            PickupLocationId  = Locations.FirstOrDefault()?.Id ?? 1,
+            DropoffLocationId = Locations.FirstOrDefault()?.Id ?? 1
+        };
+        RecalculateTotal();
+    }
+
+    private void StartEdit(Rental r)
+    {
+        ErrorMessage = null;
+        EditRental = new Rental
+        {
+            Id                = r.Id,
+            CarId             = r.CarId,
+            Car               = r.Car,
+            CustomerId        = r.CustomerId,
+            Customer          = r.Customer,
+            PickupLocationId  = r.PickupLocationId,
+            PickupLocation    = r.PickupLocation,
+            DropoffLocationId = r.DropoffLocationId,
+            DropoffLocation   = r.DropoffLocation,
+            PickupDateTime    = r.PickupDateTime,
+            DropoffDateTime   = r.DropoffDateTime,
+            TotalPrice        = r.TotalPrice,
+            Status            = r.Status
+        };
+    }
+
+    private void CloseEdit() { EditRental = null; ErrorMessage = null; }
+
+    // ── Date/Car change handlers that trigger recalculation ──
+    private void OnCarChanged(ChangeEventArgs e)
+    {
+        if (EditRental == null) return;
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            EditRental.CarId = id;
+            EditRental.Car   = AllCars.FirstOrDefault(c => c.Id == id);
+            RecalculateTotal();
+        }
+    }
+
+    private void OnPickupChanged(ChangeEventArgs e)
+    {
+        if (EditRental == null) return;
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+        {
+            EditRental.PickupDateTime = dt;
+            RecalculateTotal();
+        }
+    }
+
+    private void OnDropoffChanged(ChangeEventArgs e)
+    {
+        if (EditRental == null) return;
+        if (DateTime.TryParse(e.Value?.ToString(), out var dt))
+        {
+            EditRental.DropoffDateTime = dt;
+            RecalculateTotal();
+        }
+    }
+
+    private void RecalculateTotal()
+    {
+        if (EditRental == null) return;
+        var car = AllCars.FirstOrDefault(c => c.Id == EditRental.CarId);
+        if (car == null) return;
+
+        var days = (EditRental.DropoffDateTime.Date - EditRental.PickupDateTime.Date).TotalDays;
+        if (days < 1) days = 1;
+        EditRental.TotalPrice = (decimal)days * car.DailyRate;
+    }
+
+    private int GetDays()
+    {
+        if (EditRental == null) return 0;
+        var days = (int)(EditRental.DropoffDateTime.Date - EditRental.PickupDateTime.Date).TotalDays;
+        return days < 1 ? 1 : days;
+    }
+
+    private decimal GetCarRate()
+        => AllCars.FirstOrDefault(c => c.Id == EditRental?.CarId)?.DailyRate ?? 0;
+
+    private async Task SaveAsync()
+    {
+        if (EditRental == null) return;
+        ErrorMessage = null;
+
+        if (EditRental.CarId == 0)      { ErrorMessage = "Please select a car.";      return; }
+        if (EditRental.CustomerId == 0) { ErrorMessage = "Please select a customer."; return; }
+        if (EditRental.DropoffDateTime <= EditRental.PickupDateTime)
+        { ErrorMessage = "Dropoff must be after pickup."; return; }
+
+        try
+        {
+            // Detach nav props before saving
+            EditRental.Car             = null;
+            EditRental.Customer        = null;
+            EditRental.PickupLocation  = null;
+            EditRental.DropoffLocation = null;
+
+            if (EditRental.Id == 0)
+            {
+                await DbService.UnitOfWork.Rentals.AddAsync(EditRental);
+            }
+            else
+            {
+                var tracked = await DbService.UnitOfWork.Rentals.GetByIdAsync(EditRental.Id);
+                if (tracked != null)
+                {
+                    tracked.CarId             = EditRental.CarId;
+                    tracked.CustomerId        = EditRental.CustomerId;
+                    tracked.PickupLocationId  = EditRental.PickupLocationId;
+                    tracked.DropoffLocationId = EditRental.DropoffLocationId;
+                    tracked.PickupDateTime    = EditRental.PickupDateTime;
+                    tracked.DropoffDateTime   = EditRental.DropoffDateTime;
+                    tracked.TotalPrice        = EditRental.TotalPrice;
+                    tracked.Status            = EditRental.Status;
+                }
+            }
+
+            await DbService.UnitOfWork.SaveChangesAsync();
+            EditRental = null;
+            await DoSearch();
+        }
+        catch (Exception ex) { ErrorMessage = $"Error saving: {ex.Message}"; }
+    }
+
+    private void ConfirmDelete(Rental r) => RentalToDelete = r;
+
+    private async Task DeleteAsync()
+    {
+        if (RentalToDelete == null) return;
+        try
+        {
+            await DbService.UnitOfWork.SaveChangesAsync();
+            if (SelectedRental?.Id == RentalToDelete.Id) SelectedRental = null;
+            RentalToDelete = null;
+            await DoSearch();
+        }
+        catch (Exception ex) { ErrorMessage = $"Error deleting: {ex.Message}"; RentalToDelete = null; }
+    }
+
+    private static string StatusClass(string? status) => status switch
+    {
+        "Active"   => "badge-active",
+        "Planned"  => "badge-planned",
+        "Finished" => "badge-finished",
+        "Late"     => "badge-late",
+        "Canceled" => "badge-canceled",
+        _          => "badge-default"
+    };
+
+    private class RentalSearchState
+    {
+        public string?   CustomerNameContains { get; set; }
+        public string?   Status               { get; set; }
+        public DateTime? PickupFrom           { get; set; }
+        public DateTime? PickupTo             { get; set; }
+        public DateTime? DropoffFrom          { get; set; }
+        public DateTime? DropoffTo            { get; set; }
+        public string?   PickupLocationIdStr  { get; set; }
+        public string?   DropoffLocationIdStr { get; set; }
+        public int?      PickupLocationId     => int.TryParse(PickupLocationIdStr,  out var id) ? id : null;
+        public int?      DropoffLocationId    => int.TryParse(DropoffLocationIdStr, out var id) ? id : null;
+    }
+}

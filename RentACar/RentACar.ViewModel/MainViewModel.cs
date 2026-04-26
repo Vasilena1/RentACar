@@ -23,6 +23,7 @@ namespace RentACar.ViewModel.ViewModels
         private readonly IUnitOfWork _unitOfWork;
 
         public CarPageViewModel CarPage { get; }
+        public CarEditViewModel CarEdit { get; }
         public RentalPageViewModel RentalPage { get; }
         public CustomerPageViewModel CustomerPage { get; }
 
@@ -83,6 +84,9 @@ namespace RentACar.ViewModel.ViewModels
             CustomerPage = new CustomerPageViewModel(unitOfWork);
 
             CurrentPage = PageType.Cars;
+            CarEdit = new CarEditViewModel(unitOfWork);
+            CarEdit = new CarEditViewModel(unitOfWork);
+            _ = CarEdit.LoadLocationsAsync();
             CurrentDatabase = DatabaseType.SqlServer;
 
             ShowCarsCommand = new RelayCommand(_ => CurrentPage = PageType.Cars);

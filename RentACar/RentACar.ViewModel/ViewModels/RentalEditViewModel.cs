@@ -11,7 +11,7 @@ namespace RentACar.ViewModel.ViewModels
     public class RentalEditViewModel : INotifyPropertyChanged
     {
         private readonly IUnitOfWork _unitOfWork;
-
+        public ObservableCollection<Car> Cars { get; } = new ObservableCollection<Car>();
         public RentalEditViewModel(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
@@ -33,8 +33,6 @@ namespace RentACar.ViewModel.ViewModels
         }
 
         public bool HasCurrent => Current != null;
-
-        public ObservableCollection<Car> Cars { get; } = new ObservableCollection<Car>();
         public ObservableCollection<Customer> Customers { get; } = new ObservableCollection<Customer>();
 
         private Car? _selectedCar;
@@ -52,6 +50,7 @@ namespace RentACar.ViewModel.ViewModels
                     {
                         Current.CarId = _selectedCar.Id;
                         Current.Car = null; // важно: не закачаме навигацията
+                        RecalculateTotal();
                     }
                 }
             }
@@ -88,6 +87,8 @@ namespace RentACar.ViewModel.ViewModels
 
             SelectedCar = null;
             SelectedCustomer = null;
+
+            RecalculateTotal(); // базово изчисление за 1 ден (ако по-късно избереш кола)
         }
 
         public void StartEdit(Rental rental)
@@ -123,6 +124,22 @@ namespace RentACar.ViewModel.ViewModels
             }
 
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        private void RecalculateTotal()
+        {
+            if (Current == null || SelectedCar == null)
+                return;
+
+            var start = Current.PickupDateTime.Date;
+            var end = Current.DropoffDateTime.Date;
+
+            var days = (end - start).TotalDays;
+            if (days < 1) days = 1; // минимум 1 ден
+
+            Current.TotalPrice = (decimal)days * SelectedCar.DailyRate;
+            OnPropertyChanged(nameof(Current));
+            OnPropertyChanged(nameof(Current.TotalPrice));
         }
 
         public async Task LoadLookupsAsync()
