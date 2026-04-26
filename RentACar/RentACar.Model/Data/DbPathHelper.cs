@@ -14,7 +14,7 @@ namespace RentACar.Model.Data
             {
                 if (dir.GetFiles("*.sln").Length > 0)
                 {
-                    // Намерихме solution root-а
+                    // solution root-а
                     var dataDir = Path.Combine(dir.FullName, "SharedData");
                     Directory.CreateDirectory(dataDir);
                     return Path.Combine(dataDir, "rentacar.db");
